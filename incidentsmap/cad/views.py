@@ -6,6 +6,7 @@ from django.core.files.storage import FileSystemStorage
 from .enricher import Enricher
 from .models import Parcel, Incident
 import json
+import sys, traceback
 
 # TODO: use a logging library
 def index(request):
@@ -20,6 +21,7 @@ def index(request):
 
             # if this incident number is already in the db,
             # ignore the file and retrieve what's in the db.
+            # TODO: reconsider overwriting the current db record.
             try:
                 if 'description' in data and 'incident_number' in data['description']:
                     incident = Incident.objects.get(incident_number=data['description']['incident_number'])
@@ -33,12 +35,12 @@ def index(request):
                 enricher = Enricher(data)
                 enricher.enrich(parcel)
                 parcel.save()
-                print(parcel)
+                #print(parcel)
 
                 incident = _create_incident(data, parcel)
                 enricher.enrich(incident)
                 incident.save()
-                print(incident)
+                #print(incident)
 
             return render(request, 'cad/index.html', {
                 'uploaded_file_url': uploaded_file_url,
@@ -58,6 +60,7 @@ def index(request):
             return HttpResponse(template.render(context, request))
     except Exception as e:
         # Exception catch-all.  Mostly to let user know about parse errors.
+        traceback.print_exc(file=sys.stdout)
         return render(request, 'cad/index.html', {
             'error_msg': str(e)
         })

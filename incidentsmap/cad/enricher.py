@@ -17,9 +17,8 @@ class Enricher(object):
         self._set_weather_lat_long()
         self._set_parcel_polygon_list()
 
-        print('Enricher construct.')
-        print('weather: {}'.format(self.weather_lat_long))
-        print('parcel: {}'.format(self.parcel_polygon_list))
+        #print('weather: {}'.format(self.weather_lat_long))
+        #print('parcel: {}'.format(self.parcel_polygon_list))
 
 
     def enrich(self, _model_instance):
@@ -53,12 +52,10 @@ class Enricher(object):
             raise e
 
         incident_epoch = self._iso_to_utc_epoch(weather_ts)
-        print('incident_epoch: {}'.format(incident_epoch))
 
         if 'hourly' in body and 'data' in body['hourly']:
             incident.weather_description = 'No Weather Data'
             for hour in body['hourly']['data']:
-                print('hour_time: {}'.format(hour['time']))
                 if abs(hour['time'] - incident_epoch) < (30*60):
                     # found the incident weather
                     incident.incident_weather_description = self._get_weather_description(hour)
@@ -84,7 +81,7 @@ class Enricher(object):
         cloudcover, uvindex, visibility)
         
 
-    # SOMETHING WRONG HERE.... 
+    # SOMETHING WRONG HERE.... Need to fix API.
     def _enrich_parcel(self, parcel):
         flat_points = ','.join([str(s) for s in self.parcel_polygon_list])
         url = 'http://gis.richmondgov.com/ArcGIS/rest/services/StatePlane4502/Ener/MapServer/0/query?text=&geometry={}&inSR=&spatialRel=esriSpatialRelIntersects&relationParam=&objectIds=&where=&time=&returnCountOnly=false&returnIdsOnly=false&returnGeometry=true&maxAllowableOffset=&outSR=&outFields=&f=json'.format(flat_points)
@@ -97,7 +94,8 @@ class Enricher(object):
         # Add the owners name
         parcel.parcel_owner_name = names.get_full_name()
         
-        # Add mail address
+        # Add mail address -- 
+        # TODO: not being used due to API issue.
         parcel.parcel_mail_address = '{} {} {}'.format(random.randrange(1, 300), names.get_first_name(), random.choice(['St.', 'Ave.', 'Blvd.', 'Way', 'Crossing', 'Rd', 'Pkwy']))
         
         # Add land value
@@ -148,11 +146,9 @@ class Enricher(object):
                     self.parcel_polygon_list.append(car['unit_status']['arrived']['longitude'])
                     self.parcel_polygon_list.append(car['unit_status']['arrived']['latitude'])          
         else:
-            # probably could get the polygon from arcgis call that's failing for
-            # me right now.  So.... going to use dispatch lat/long
-            
-            #raise Exception('Not enough data to create a polygon for parcel')
-            car = self.data['apparatus'][0]
-            self.parcel_polygon_list.append(car['unit_status']['dispatched']['longitude'])
-            self.parcel_polygon_list.append(car['unit_status']['dispatched']['latitude'])  
-
+            if 'apparatus' in self.data and len(self.data['apparatus']) > 0:
+                car = self.data['apparatus'][0]
+                self.parcel_polygon_list.append(car['unit_status']['dispatched']['longitude'])
+                self.parcel_polygon_list.append(car['unit_status']['dispatched']['latitude'])  
+            else:
+                raise Exception('Not enough data to create a polygon for parcel')
