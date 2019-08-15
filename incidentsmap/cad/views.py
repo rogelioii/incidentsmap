@@ -47,7 +47,8 @@ def index(request):
             },
             'weather': incident.incident_weather_description,
             'parcel_poly': parcel.get_polygon(),
-            'parcel': parcel
+            'parcel': parcel,
+            'response_unit_stats': incident.get_response_unit_stats()
         })
     else:
         template = loader.get_template('cad/index.html')

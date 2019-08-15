@@ -55,8 +55,29 @@
           </div>
           <hr>
           <div>
-            <h6>Unit Breakdown (Event Duration / Response Duration / Travel Duration / Turnout Duration)</h6>
-            <p>{{incident.incident_units_involved}}</p>
+            <h6>Response Unit Statistics</h6>
+
+            <table class="table">
+                <thead>
+                    <th scope="col">Unit Type</th>
+                    <th scope="col">Event Duration</th>
+                    <th scope="col">Response Duration</th>
+                    <th scope="col">Travel Duration</th>
+                    <th scope="col">Turnout Duration</th>
+                </thead>
+                <tbody>
+                {% for response_unit in response_unit_stats %}
+                <tr>
+                    <td>{{response_unit.unit_type}}</td>
+                    <td>{{response_unit.event_duration}}</td>
+                    <td>{{response_unit.response_duration}}</td>
+                    <td>{{response_unit.travel_duration}}</td>
+                    <td>{{response_unit.turnout_duration}}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
           </div>
       </div>
     </div>
@@ -76,7 +97,7 @@
     
     //const marker = L.marker([37.466513, -77.428683]).addTo(mymap);
     const marker = L.marker([{{marker.lat}}, {{marker.lng}}]).addTo(mymap);
-    marker.bindPopup("<b>{{incident.incident_day_of_week}}, {{incident.incident_event_opened}}</b><br><b>Weather</b><br>{{weather}}<br><br>{{marker.lat}} / {{marker.lng}}").openPopup();
+    marker.bindPopup("<b>{{incident.incident_day_of_week}}, {{incident.incident_event_opened}}</b><br><b>Weather</b><br>{{weather|safe}}<br><br>{{marker.lat}} / {{marker.lng}}").openPopup();
     
     var polygon = L.polygon({{parcel_poly}}).addTo(mymap);
 

@@ -69,12 +69,61 @@ class Incident(models.Model):
     incident_weather_description = models.TextField(default='')
 
     def __str__(self):
-        return 'INCIDENT: {} - {} - {} - {}'.format(
+        return 'INCIDENT: {} - {} - {} - {} - {} - {}'.format(
             self.incident_number,
             self.incident_latitude,
             self.incident_longitude,
-            self.incident_parcel
+            self.incident_parcel,
+            self.incident_type,
+            self.incident_sub_type
             ) 
 
+    def get_response_unit_stats(self):
+        '''
+        There's a better way to store this data in the DB,
+        but in the interest of time, I'm parsing the string
+        here so it can be better rendered.
+        '''
+
+        if not self.incident_units_involved:
+            return []
+
+        ret_array = []
+        units = self.incident_units_involved.split('\n')
+        for unit in units:
+            unit = unit.strip()
+            unit_type = unit.split('-')[0].strip()
+            unit_stats = unit.split('-')[1].strip()
+            event_duration = unit_stats.split('/')[0]
+            response_duration = unit_stats.split('/')[1]
+            travel_duration = unit_stats.split('/')[2]
+            turnout_duration = unit_stats.split('/')[3]
+            ret_array.append({
+                'unit_type': unit_type,
+                'event_duration': event_duration,
+                'response_duration': response_duration,
+                'travel_duration': travel_duration,
+                'turnout_duration': turnout_duration
+            })
+        return ret_array
+
+        '''
+        return [
+            {
+                'unit_type': 'the unit type',
+                'event_duration': 10,
+                'response_duration': 11,
+                'travel_duration': 12,
+                'turnout_duration': 13
+            },
+            {
+                'unit_type': 'the unit2 type',
+                'event_duration': 210,
+                'response_duration': 211,
+                'travel_duration': 212,
+                'turnout_duration': 213
+            }
+        ]
+        '''
 
 

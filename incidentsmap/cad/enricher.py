@@ -79,7 +79,7 @@ class Enricher(object):
         cloudcover = weather_data['cloudCover'] if 'cloudCover' in weather_data else ''
         uvindex = weather_data['uvIndex'] if 'uvIndex' in weather_data else ''
         visibility = weather_data['visibility'] if 'visibility' in weather_data else ''
-        return '''{} and {} PrecipIntensity: {}PrecipProbability: {}Humidity: {}Pressure: {}Wind Speed: {}Wind Gust: {}Wind Bearing: {}Cloud Cover: {}UV Index: {}Visibility: {}'''.format(temperature, summary, p_intensity, p_probability, 
+        return '''{} degrees and {}<br>PrecipIntensity: {}<br>PrecipProbability: {}<br>Humidity: {}<br>Pressure: {}<br>Wind Speed: {}<br>Wind Gust: {}<br>Wind Bearing: {}<br>Cloud Cover: {}<br>UV Index: {}<br>Visibility: {}'''.format(temperature, summary, p_intensity, p_probability, 
         humidity, pressure, wspeed, wgust, wbearing, 
         cloudcover, uvindex, visibility)
         
