@@ -6,3 +6,5 @@ Enrich 911 emergency incident data to provide better analytics for a fire depart
 * source env/bin/activate
 * pip install -r requirements.txt
 
+# Testing
+* python manage.py test cad

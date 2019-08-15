@@ -30,6 +30,10 @@
     <p>File uploaded at: <a href="{{ uploaded_file_url }}">{{ uploaded_file_url }}</a></p>
   {% endif %}
 
+  {% if error_msg %}
+    <p style="color:red;">Error Message: {{ error_msg }}</a></p>
+  {% endif %}
+
   <div id="container">
     <div class="row">
       <div class="col-sm" id="mapid" style="width: 800px; height: 800px;"></div>
@@ -40,7 +44,8 @@
           <div>
             <h6>Parcel</h6>
             <p>Owner: {{parcel.parcel_owner_name}}</p>
-            <p>Address: {{parcel.parcel_mail_address}}</p>
+            <!--p>Address: {{parcel.parcel_mail_address}}</p-->
+            <p>Address: {{incident.incident_address_string}}</p>
             <p>Land Area: {{parcel.parcel_land_sq_ft}}</p>
             <p>Land Value: {{parcel.parcel_land_value}}</p>
           </div>
@@ -48,7 +53,7 @@
           <div>
             <h6>Incident</h6>
             <p>Incident Type: {{incident.incident_type}} => {{incident.incident_sub_type}}</p>
-            <p>Address: {{parcel.parcel_mail_address}}</p>
+            <p>Address: {{incident.incident_address_string}}</p>
             <p>Incident Opened: {{incident.incident_event_opened}}</p>
             <p>Incident Closed: {{incident.incident_event_closed}}</p>
             <p>Response Zone: {{incident.incident_response_zone}}</p>

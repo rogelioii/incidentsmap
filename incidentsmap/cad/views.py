@@ -7,54 +7,60 @@ from .enricher import Enricher
 from .models import Parcel, Incident
 import json
 
+# TODO: use a logging library
 def index(request):
-    if request.method == 'POST' and request.FILES['myfile']:
-        myfile = request.FILES['myfile']
-        fs = FileSystemStorage()
-        filename = fs.save(myfile.name, myfile)
-        uploaded_file_url = fs.url(filename)
+    try:
+        if request.method == 'POST' and request.FILES['myfile']:
+            myfile = request.FILES['myfile']
+            fs = FileSystemStorage()
+            filename = fs.save(myfile.name, myfile)
+            uploaded_file_url = fs.url(filename)
 
-        data = _read_from_file(filename)
+            data = _read_from_file(filename)
 
-        # if this incident number is already in the db,
-        # ignore the file and retrieve what's in the db.
-        try:
-            if 'description' in data and 'incident_number' in data['description']:
-                incident = Incident.objects.get(incident_number=data['description']['incident_number'])
-                print('{} already in database.  Using database record.'.format(incident))
-                parcel = incident.incident_parcel
-            else:
-                raise Exception('no incident number found.  Check File.')
-        except Exception as e:
-            # We keep going
-            parcel = Parcel()
-            enricher = Enricher(data)
-            enricher.enrich(parcel)
-            parcel.save()
-            print(parcel)
+            # if this incident number is already in the db,
+            # ignore the file and retrieve what's in the db.
+            try:
+                if 'description' in data and 'incident_number' in data['description']:
+                    incident = Incident.objects.get(incident_number=data['description']['incident_number'])
+                    print('{} already in database.  Using database record.'.format(incident))
+                    parcel = incident.incident_parcel
+                else:
+                    raise Exception('no incident number found.  Check File.')
+            except Exception as e:
+                # We keep going
+                parcel = Parcel()
+                enricher = Enricher(data)
+                enricher.enrich(parcel)
+                parcel.save()
+                print(parcel)
 
-            incident = _create_incident(data, parcel)
-            enricher.enrich(incident)
-            incident.save()
-            print(incident)
+                incident = _create_incident(data, parcel)
+                enricher.enrich(incident)
+                incident.save()
+                print(incident)
 
+            return render(request, 'cad/index.html', {
+                'uploaded_file_url': uploaded_file_url,
+                'incident': incident,
+                'marker': {
+                    'lat': incident.incident_latitude,
+                    'lng': incident.incident_longitude
+                },
+                'weather': incident.incident_weather_description,
+                'parcel_poly': parcel.get_polygon(),
+                'parcel': parcel,
+                'response_unit_stats': incident.get_response_unit_stats()
+            })
+        else:
+            template = loader.get_template('cad/index.html')
+            context = {}
+            return HttpResponse(template.render(context, request))
+    except Exception as e:
+        # Exception catch-all.  Mostly to let user know about parse errors.
         return render(request, 'cad/index.html', {
-            'uploaded_file_url': uploaded_file_url,
-            'incident': incident,
-            'marker': {
-                'lat': incident.incident_latitude,
-                'lng': incident.incident_longitude
-            },
-            'weather': incident.incident_weather_description,
-            'parcel_poly': parcel.get_polygon(),
-            'parcel': parcel,
-            'response_unit_stats': incident.get_response_unit_stats()
+            'error_msg': str(e)
         })
-    else:
-        template = loader.get_template('cad/index.html')
-        context = {}
-        return HttpResponse(template.render(context, request))
-
 
 def _create_incident(data, parcel):
     inc = Incident(incident_parcel=parcel)
