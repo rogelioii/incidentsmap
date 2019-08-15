@@ -1,3 +1,4 @@
 from django.contrib import admin
 
-# Register your models here.
+# Not going to support admin mode
+

@@ -1,6 +1,11 @@
+"""
+Django Testing
+
+Approach: Since this django project is not model-heavy. I've
+chosen to test mostly using client.get('/') and inspecting the
+html output
+"""
 from django.test import TestCase
-from django.test.utils import setup_test_environment
-from django.test import Client
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import Parcel, Incident
 import json
@@ -11,8 +16,10 @@ TODO: break these out into separate files
 
 ### General ###
 class IndexViewTests(TestCase):
-    # verify page loads
+    """ IndexViewTests """
+
     def test_page_loads(self):
+        """ verify page loads """
         response = self.client.get('/')
         content = response.content.decode('utf-8')
         self.assertTrue(response.status_code == 200)
@@ -21,6 +28,12 @@ class IndexViewTests(TestCase):
 
     # test uploading file
     def test_upload_file1(self):
+        """ test_upload_file1
+
+        The most generic test but covers the most ground.
+
+        A sanity test.
+        """
         myfile = SimpleUploadedFile("testfile.json", file_content, content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
@@ -29,7 +42,7 @@ class IndexViewTests(TestCase):
         self.assertTrue('Address: 333 E FRANKLIN ST' in content)
         self.assertTrue('Incident Number: F01705150050' in content)
         self.assertTrue('HAZMAT => SMELL OR ODOR (NO SPILL)' in content)
-        
+
         # test for weather enrichment
         self.assertTrue('degrees and' in content)
         self.assertTrue('Incident Opened: 20' in content)
@@ -37,7 +50,7 @@ class IndexViewTests(TestCase):
         self.assertTrue('PrecipProbability:' in content)
         self.assertTrue('Humidity:' in content)
         self.assertTrue('Wind Speed:' in content)
-        
+
         # test for parcel
         self.assertTrue('L.polygon([[' in content)
 
@@ -45,13 +58,17 @@ class IndexViewTests(TestCase):
 
 ### Parcel Tests ###
 class ParcelTests(TestCase):
-    
+    """ ParcelTests """
+
     # test missing parcel owner name
     def test_missing_parcel_owner_name(self):
+        """test_missing_parcel_owner_name"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['description'].pop('incident_number')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -61,13 +78,15 @@ class ParcelTests(TestCase):
 
     # test missing parcel mail address
     def test_missing_parcel_mail_address(self):
-        '''
+        """
         My implementation allows for rendering even with missing address.
-        '''
+        """
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['address'].pop('address_line1')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -76,11 +95,13 @@ class ParcelTests(TestCase):
 
     # test missing parcel land value
     def test_exists_parcel_land_value(self):
-        '''
+        """
         Right now, this can never be missing. so test for existence.
-        '''
+        """
         delete_entries()
-        myfile = SimpleUploadedFile("testfile.json", file_content, content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    file_content,
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -90,11 +111,13 @@ class ParcelTests(TestCase):
 
     # test missing parcel land sq ft
     def test_exists_parcel_land_sqft(self):
-        '''
+        """
         Right now, this can never be missing. so test for existence.
-        '''
+        """
         delete_entries()
-        myfile = SimpleUploadedFile("testfile.json", file_content, content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    file_content,
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -104,10 +127,13 @@ class ParcelTests(TestCase):
 
     # test missing parcel polygon string list
     def test_missing_parcel_polygon_string_list(self):
+        """test_missing_parcel_polygon_string_list"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['apparatus'] = []
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -115,28 +141,20 @@ class ParcelTests(TestCase):
         self.assertTrue('L.polygon()' in content)
         self.assertTrue('L.marker([, ]).addTo(mymap)' in content)
 
-    # test different get_polygon scenarios
-    def test_missing_parcel_polygon_string_list(self):
-        delete_entries()
-        _json = json.loads(file_content.decode('utf-8'))
-        _json['apparatus'] = []
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
-        response = self.client.post('/', {'myfile': myfile})
-        #print(response.content)
-        self.assertTrue(response.status_code == 200)
-        content = response.content.decode('utf-8')
-        self.assertTrue('L.polygon()' in content)
-        self.assertTrue('L.marker([, ]).addTo(mymap)' in content)
 
 ### Incident Tests ###
 class IncidentTests(TestCase):
+    """ IncidentTests """
 
     # test missing lat
     def test_missing_incident_lat(self):
+        """test_missing_incident_lat"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['address'].pop('latitude')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -145,10 +163,13 @@ class IncidentTests(TestCase):
 
     # test missing long
     def test_missing_incident_lng(self):
+        """test_missing_incident_lng"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['address'].pop('longitude')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -157,10 +178,13 @@ class IncidentTests(TestCase):
 
     # test missing type
     def test_missing_type(self):
+        """test_missing_type"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['description'].pop('type')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -169,10 +193,13 @@ class IncidentTests(TestCase):
 
     # test missing sub type
     def test_missing_sub_type(self):
+        """test_missing_sub_type"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['description'].pop('subtype')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -181,10 +208,13 @@ class IncidentTests(TestCase):
 
     # test missing day of week
     def test_missing_day_of_week(self):
+        """test_missing_day_of_week"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['description'].pop('day_of_week')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -193,10 +223,13 @@ class IncidentTests(TestCase):
 
     # test missing event opened
     def test_missing_event_opened(self):
+        """test_missing_event_opened"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['description'].pop('event_opened')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -205,22 +238,29 @@ class IncidentTests(TestCase):
 
     # test missing event closed
     def test_missing_event_closed(self):
+        """test_missing_event_closed"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['description'].pop('event_closed')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
         content = response.content.decode('utf-8')
-        self.assertTrue('value has an invalid format. It must be in YYYY-MM-DD' in content)
+        self.assertTrue(
+            'value has an invalid format. It must be in YYYY-MM-DD' in content)
 
     # test missing response zone
     def test_missing_response_zone(self):
+        """test_missing_response_zone"""
         delete_entries()
         _json = json.loads(file_content.decode('utf-8'))
         _json['address'].pop('response_zone')
-        myfile = SimpleUploadedFile("testfile.json", str.encode(json.dumps(_json)), content_type="application/json")
+        myfile = SimpleUploadedFile("testfile.json",
+                                    str.encode(json.dumps(_json)),
+                                    content_type="application/json")
         response = self.client.post('/', {'myfile': myfile})
         #print(response.content)
         self.assertTrue(response.status_code == 200)
@@ -512,5 +552,6 @@ file_content = b'''{
 
 
 def delete_entries():
+    """helper to delete objects"""
     Parcel.objects.all().delete()
     Incident.objects.all().delete()

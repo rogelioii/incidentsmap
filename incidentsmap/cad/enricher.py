@@ -1,14 +1,22 @@
-import json
-import requests
-import names
+"""
+enricher module that holds the Enricher class.
+"""
 import random
 import pytz
-from .models import Parcel, Incident 
+import names
+import requests
+from .models import Parcel, Incident
 from datetime import datetime
 
+class Enricher():
+    """Enricher Class
 
+    This class processes the raw data that is needed as input to call
+    the weather and arcgis apis.
 
-class Enricher(object):
+    Controller classes instantiate this class and call the 'enrich'
+    method to add enrichments to the model passed in.
+    """
     def __init__(self, data):
         self.data = data
         self.weather_lat_long = []
@@ -22,6 +30,11 @@ class Enricher(object):
 
 
     def enrich(self, _model_instance):
+        """enrich
+        Given the model instance, this method enriches it
+
+        Throws exception if model instance is not supported.
+        """
         if isinstance(_model_instance, Parcel):
             self._enrich_parcel(_model_instance)
         elif isinstance(_model_instance, Incident):
@@ -31,25 +44,26 @@ class Enricher(object):
 
     def _iso_to_utc_epoch(self, iso):
         # TODO: make this timezone calculation better.
-        tz = pytz.timezone('UTC')
+        _tz = pytz.timezone('UTC')
         offset = 0 - int(iso[:-3][-3:]) * 3600
-        dt_with_tz = tz.localize(datetime.strptime(iso[:-6], '%Y-%m-%dT%H:%M:%S'), is_dst=None)
-        ts = (dt_with_tz - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds() + offset
-        return int(ts)
-    
+        dt_with_tz = _tz.localize(datetime.strptime(iso[:-6], '%Y-%m-%dT%H:%M:%S'), is_dst=None)
+        _ts = (dt_with_tz - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds() + offset
+        return int(_ts)
+
     def _enrich_incident(self, incident):
         flat_points = ','.join([str(s) for s in self.weather_lat_long])
         weather_ts = incident.incident_event_opened
-        url = 'https://api.darksky.net/forecast/971bc3c7f3e0e07dc4982e2aa9f013f9/{},{}?exclude=currently,flags,daily'.format(flat_points, weather_ts)
+        url = 'https://api.darksky.net/forecast/971bc3c7f3e0e07dc4982e2aa9f013f9' \
+              '/{},{}?exclude=currently,flags,daily'.format(flat_points, weather_ts)
         print('_enrich_incident request url is: {}'.format(url))
         response = requests.get(url)
         print('_enrich_incident response is: {}'.format(response.json()))
-        
+
         # check each hourly and check the weather of the closest half-hour to incident
         try:
             body = response.json()
-        except Exception as e:
-            raise e
+        except Exception as _e:
+            raise _e
 
         incident_epoch = self._iso_to_utc_epoch(weather_ts)
 
@@ -61,13 +75,14 @@ class Enricher(object):
                     incident.incident_weather_description = self._get_weather_description(hour)
                     break
 
-    
+
     def _get_weather_description(self, weather_data):
         # TODO: add dew point and apparent temp later.
         temperature = weather_data['temperature'] if 'temperature' in weather_data else ''
         summary = weather_data['summary'] if 'summary' in weather_data else ''
         p_intensity = weather_data['precipIntensity'] if 'precipIntensity' in weather_data else ''
-        p_probability = weather_data['precipProbability'] if 'precipProbability' in weather_data else ''
+        p_probability = weather_data['precipProbability'] if \
+                'precipProbability' in weather_data else ''
         humidity = weather_data['humidity'] if 'humidity' in weather_data else ''
         pressure = weather_data['pressure'] if 'pressure' in weather_data else ''
         wspeed = weather_data['windSpeed'] if 'windSpeed' in weather_data else ''
@@ -76,15 +91,22 @@ class Enricher(object):
         cloudcover = weather_data['cloudCover'] if 'cloudCover' in weather_data else ''
         uvindex = weather_data['uvIndex'] if 'uvIndex' in weather_data else ''
         visibility = weather_data['visibility'] if 'visibility' in weather_data else ''
-        return '''{} degrees and {}<br>PrecipIntensity: {}<br>PrecipProbability: {}<br>Humidity: {}<br>Pressure: {}<br>Wind Speed: {}<br>Wind Gust: {}<br>Wind Bearing: {}<br>Cloud Cover: {}<br>UV Index: {}<br>Visibility: {}'''.format(temperature, summary, p_intensity, p_probability, 
-        humidity, pressure, wspeed, wgust, wbearing, 
-        cloudcover, uvindex, visibility)
-        
+        return '{} degrees and {}<br>PrecipIntensity: {}<br>PrecipProbability: {}' \
+                '<br>Humidity: {}<br>Pressure: {}<br>Wind Speed: {}<br>Wind Gust: {}'\
+                '<br>Wind Bearing: {}<br>Cloud Cover: {}<br>UV Index: {}<br>Visibility: {}'\
+                .format(temperature, summary, p_intensity, p_probability,
+                        humidity, pressure, wspeed, wgust, wbearing,
+                        cloudcover, uvindex, visibility)
+
 
     # SOMETHING WRONG HERE.... Need to fix API.
     def _enrich_parcel(self, parcel):
         flat_points = ','.join([str(s) for s in self.parcel_polygon_list])
-        url = 'http://gis.richmondgov.com/ArcGIS/rest/services/StatePlane4502/Ener/MapServer/0/query?text=&geometry={}&inSR=&spatialRel=esriSpatialRelIntersects&relationParam=&objectIds=&where=&time=&returnCountOnly=false&returnIdsOnly=false&returnGeometry=true&maxAllowableOffset=&outSR=&outFields=&f=json'.format(flat_points)
+        url = 'http://gis.richmondgov.com/ArcGIS/rest/services/StatePlane4502/' \
+              'Ener/MapServer/0/query?text=&geometry={}&inSR=&spatialRel=' \
+              'esriSpatialRelIntersects&relationParam=&objectIds=&where=&time=' \
+              '&returnCountOnly=false&returnIdsOnly=false&returnGeometry=true&' \
+              'maxAllowableOffset=&outSR=&outFields=&f=json'.format(flat_points)
         print('_enrich_parcel request url is: {}'.format(url))
         response = requests.get(url)
         print('_enrich_parcel response is: {}'.format(response.json()))
@@ -93,17 +115,20 @@ class Enricher(object):
 
         # Add the owners name
         parcel.parcel_owner_name = names.get_full_name()
-        
-        # Add mail address -- 
+
+        # Add mail address --
         # TODO: not being used due to API issue.
-        parcel.parcel_mail_address = '{} {} {}'.format(random.randrange(1, 300), names.get_first_name(), random.choice(['St.', 'Ave.', 'Blvd.', 'Way', 'Crossing', 'Rd', 'Pkwy']))
-        
+        parcel.parcel_mail_address = '{} {} {}'.format(
+            random.randrange(1, 300), names.get_first_name(),
+            random.choice(['St.', 'Ave.', 'Blvd.', 'Way',
+                           'Crossing', 'Rd', 'Pkwy']))
+
         # Add land value
-        parcel.parcel_land_value = random.randrange(80000, 650000, 50) 
-        
+        parcel.parcel_land_value = random.randrange(80000, 650000, 50)
+
         # Add land sq ft
-        parcel.parcel_land_sq_ft = random.randrange(600, 6500, 15) 
-        
+        parcel.parcel_land_sq_ft = random.randrange(600, 6500, 15)
+
         # copy the polygon
         new_poly = self.parcel_polygon_list.copy()
         new_poly.reverse()
@@ -115,12 +140,12 @@ class Enricher(object):
             'longitude' in self.data['address']:
 
             self.weather_lat_long = [
-                self.data['address']['latitude'], 
-                self.data['address']['longitude'] 
+                self.data['address']['latitude'],
+                self.data['address']['longitude']
             ]
         else:
             raise Exception('lat/long not found in address. Check file')
-        
+
     def _set_parcel_polygon_list(self):
         '''
         To determine polygon for query:
@@ -144,11 +169,11 @@ class Enricher(object):
                         'longitude' in car['unit_status']['arrived'] and \
                         'latitude' in car['unit_status']['arrived']:
                     self.parcel_polygon_list.append(car['unit_status']['arrived']['longitude'])
-                    self.parcel_polygon_list.append(car['unit_status']['arrived']['latitude'])          
+                    self.parcel_polygon_list.append(car['unit_status']['arrived']['latitude'])
         else:
-            if 'apparatus' in self.data and len(self.data['apparatus']) > 0:
+            if 'apparatus' in self.data and self.data['apparatus']:
                 car = self.data['apparatus'][0]
                 self.parcel_polygon_list.append(car['unit_status']['dispatched']['longitude'])
-                self.parcel_polygon_list.append(car['unit_status']['dispatched']['latitude'])  
+                self.parcel_polygon_list.append(car['unit_status']['dispatched']['latitude'])
             else:
                 raise Exception('Not enough data to create a polygon for parcel')
