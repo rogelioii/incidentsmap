@@ -15,20 +15,39 @@ def index(request):
         uploaded_file_url = fs.url(filename)
 
         data = _read_from_file(filename)
-        parcel = Parcel()
-        enricher = Enricher(data)
-        enricher.enrich(parcel)
-        parcel.save()
-        print(parcel)
 
-        incident = _create_incident(data, parcel)
-        enricher.enrich(incident)
-        incident.save()
-        print(incident)
+        # if this incident number is already in the db,
+        # ignore the file and retrieve what's in the db.
+        try:
+            if 'description' in data and 'incident_number' in data['description']:
+                incident = Incident.objects.get(incident_number=data['description']['incident_number'])
+                print('{} already in database.  Using database record.'.format(incident))
+                parcel = incident.incident_parcel
+            else:
+                raise Exception('no incident number found.  Check File.')
+        except Exception as e:
+            # We keep going
+            parcel = Parcel()
+            enricher = Enricher(data)
+            enricher.enrich(parcel)
+            parcel.save()
+            print(parcel)
 
+            incident = _create_incident(data, parcel)
+            enricher.enrich(incident)
+            incident.save()
+            print(incident)
 
         return render(request, 'cad/index.html', {
-            'uploaded_file_url': uploaded_file_url
+            'uploaded_file_url': uploaded_file_url,
+            'incident': incident,
+            'marker': {
+                'lat': incident.incident_latitude,
+                'lng': incident.incident_longitude
+            },
+            'weather': incident.incident_weather_description,
+            'parcel_poly': parcel.get_polygon(),
+            'parcel': parcel
         })
     else:
         template = loader.get_template('cad/index.html')
@@ -37,7 +56,7 @@ def index(request):
 
 
 def _create_incident(data, parcel):
-    inc = Incident(incident_parcel = parcel)
+    inc = Incident(incident_parcel=parcel)
     if 'description' in data and 'incident_number' in data['description']:
         inc.incident_number = data['description']['incident_number']
     else:
@@ -66,7 +85,7 @@ def _create_incident(data, parcel):
         if 'type' in data['description']:
             inc.incident_type = data['description']['type']
         if 'subtype' in data['description']:
-            inc.incident_subtype = data['description']['subtype']
+            inc.incident_sub_type = data['description']['subtype']
         if 'day_of_week' in data['description']:
             inc.incident_day_of_week = data['description']['day_of_week']
         if 'event_opened' in data['description']:
@@ -77,7 +96,7 @@ def _create_incident(data, parcel):
     if 'apparatus' in data:
         tmp_array = []
         for car in data['apparatus']:
-            append('{} - {}/{}/{}/{}'.format(
+            tmp_array.append('{} - {}/{}/{}/{}'.format(
                 car['unit_type'],
                 car['extended_data']['event_duration'],
                 car['extended_data']['response_duration'],
@@ -86,6 +105,7 @@ def _create_incident(data, parcel):
             ))
         if tmp_array:
              inc.incident_units_involved = flat_points = '\n'.join([str(s) for s in tmp_array])
+    return inc
 
 def _read_from_file(fname):
     with open(fname, 'r') as json_file:

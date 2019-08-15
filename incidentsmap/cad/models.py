@@ -4,10 +4,13 @@ class Parcel(models.Model):
     '''
     parcel enrichment
     '''
-    parcel_owner_name = models.CharField(max_length=100, default=''),
+    parcel_owner_name = models.CharField(max_length=100, default='')
     parcel_mail_address = models.TextField(default='')
     parcel_land_value = models.FloatField(default='')
     parcel_land_sq_ft = models.FloatField(default='')
+
+    # TODO: change to array.
+    parcel_polygon_string_list = models.TextField(default='')
     
     def __str__(self):
         return 'PARCEL: {} - {} - {} - {}'.format(
@@ -16,6 +19,18 @@ class Parcel(models.Model):
             self.parcel_land_value,
             self.parcel_land_sq_ft
             ) 
+
+    def get_polygon(self):
+        # return array of arrays of lat/lng
+        ret_array = []
+        if self.parcel_polygon_string_list:
+            cur_array = []
+            for num in self.parcel_polygon_string_list.split(','):
+                cur_array.append(float(num))
+                if len(cur_array) == 2:
+                    ret_array.append(cur_array.copy())
+                    cur_array = []
+        return ret_array
 
 class Incident(models.Model):
     '''

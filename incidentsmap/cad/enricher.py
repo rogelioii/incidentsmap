@@ -53,44 +53,33 @@ class Enricher(object):
             raise e
 
         incident_epoch = self._iso_to_utc_epoch(weather_ts)
+        print('incident_epoch: {}'.format(incident_epoch))
 
         if 'hourly' in body and 'data' in body['hourly']:
             incident.weather_description = 'No Weather Data'
             for hour in body['hourly']['data']:
-                if abs(hour['time'] - incident_epoch) < 30:
+                print('hour_time: {}'.format(hour['time']))
+                if abs(hour['time'] - incident_epoch) < (30*60):
                     # found the incident weather
-                    incident.weather_description = self._get_weather_description(hour)
+                    incident.incident_weather_description = self._get_weather_description(hour)
                     break
 
     
     def _get_weather_description(self, weather_data):
         # TODO: add dew point and apparent temp later.
-        temperature = weather_data['temperature']
-        summary = weather_data['summary']
-        p_intensity = weather_data['precipIntensity']
-        p_probability = weather_data['precipProbability']
-        humidity = weather_data['humidity']
-        pressure = weather_data['pressure']
-        wspeed = weather_data['windSpeed']
-        wgust = weather_data['windGust']
-        wbearing = weather_data['windBearing']
-        cloudcover = weather_data['cloudCover']
-        uvindex = weather_data['uvIndex']
-        visibility = weather_data['visibility']
-        return '''
-        {} and {}
-        PrecipIntensity: {}
-        PrecipProbability: {}
-        Humidity: {}
-        Pressure: {}
-        Wind Speed: {}
-        Wind Gust: {}
-        Wind Bearing: {}
-        Cloud Cover: {}
-        UV Index: {}
-        Visibility: {}
-
-        '''.format(temperature, summary, p_intensity, p_probability, 
+        temperature = weather_data['temperature'] if 'temperature' in weather_data else ''
+        summary = weather_data['summary'] if 'summary' in weather_data else ''
+        p_intensity = weather_data['precipIntensity'] if 'precipIntensity' in weather_data else ''
+        p_probability = weather_data['precipProbability'] if 'precipProbability' in weather_data else ''
+        humidity = weather_data['humidity'] if 'humidity' in weather_data else ''
+        pressure = weather_data['pressure'] if 'pressure' in weather_data else ''
+        wspeed = weather_data['windSpeed'] if 'windSpeed' in weather_data else ''
+        wgust = weather_data['windGust'] if 'windGust' in weather_data else ''
+        wbearing = weather_data['windBearing'] if 'windBearing' in weather_data else ''
+        cloudcover = weather_data['cloudCover'] if 'cloudCover' in weather_data else ''
+        uvindex = weather_data['uvIndex'] if 'uvIndex' in weather_data else ''
+        visibility = weather_data['visibility'] if 'visibility' in weather_data else ''
+        return '''{} and {} PrecipIntensity: {}PrecipProbability: {}Humidity: {}Pressure: {}Wind Speed: {}Wind Gust: {}Wind Bearing: {}Cloud Cover: {}UV Index: {}Visibility: {}'''.format(temperature, summary, p_intensity, p_probability, 
         humidity, pressure, wspeed, wgust, wbearing, 
         cloudcover, uvindex, visibility)
         
@@ -117,7 +106,10 @@ class Enricher(object):
         # Add land sq ft
         parcel.parcel_land_sq_ft = random.randrange(600, 6500, 15) 
         
-        # What else?   
+        # copy the polygon
+        new_poly = self.parcel_polygon_list.copy()
+        new_poly.reverse()
+        parcel.parcel_polygon_string_list = ','.join([str(s) for s in new_poly])
 
     def _set_weather_lat_long(self):
         if 'address' in self.data and \
@@ -156,6 +148,11 @@ class Enricher(object):
                     self.parcel_polygon_list.append(car['unit_status']['arrived']['longitude'])
                     self.parcel_polygon_list.append(car['unit_status']['arrived']['latitude'])          
         else:
-            raise Exception('Not enough data to create a polygon for parcel')
-
+            # probably could get the polygon from arcgis call that's failing for
+            # me right now.  So.... going to use dispatch lat/long
+            
+            #raise Exception('Not enough data to create a polygon for parcel')
+            car = self.data['apparatus'][0]
+            self.parcel_polygon_list.append(car['unit_status']['dispatched']['longitude'])
+            self.parcel_polygon_list.append(car['unit_status']['dispatched']['latitude'])  
 
