@@ -39,10 +39,10 @@ Enrich 911 emergency incident data to provide better analytics for a fire depart
 
 # Other things asked for...
 * Did I complete the project?
-    * Kind of... See the "faked up GIS API" as mentioned above.
-    * Other than this, I feel like I did an OK job on the rest.
+    * Mostly... See the "faked up GIS API" as mentioned above.
 * How much time did I spend?
     * Not counting the 2.5 hours I was trying to debug the GIS api, I spent about 8-9 hours
 * Screenshots
     * Screenshots can be found in the screenshots directory.  The filenames describe the usage.
+    * PLEASE scroll to the right if viewing on github.  The screenshots are rather big, and you will miss the right half of the UI if you don't scroll.
 
